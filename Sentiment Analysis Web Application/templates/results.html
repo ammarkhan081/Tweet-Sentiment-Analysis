@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - SentimentAI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .results-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: var(--spacing-xl) var(--spacing-lg);
+    }
+    
+    .results-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+    }
+    
+    .results-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-md);
+        background: linear-gradient(135deg, #ffffff 0%, #00d4ff 50%, #667eea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .results-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .result-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-2xl);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: var(--spacing-xl);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .result-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: var(--gradient-primary);
+    }
+    
+    .analyzed-text {
+        background: var(--bg-elevated);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+        border-left: 4px solid var(--accent-primary);
+    }
+    
+    .text-label {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: var(--spacing-sm);
+        font-weight: 600;
+    }
+    
+    .text-content {
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        line-height: 1.6;
+        font-style: italic;
+    }
+    
+    .sentiment-result {
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .sentiment-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--spacing-lg);
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .sentiment-badge {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        font-size: 1.2rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .sentiment-positive {
+        background: linear-gradient(135deg, rgba(81, 207, 102, 0.2), rgba(81, 207, 102, 0.1));
+        color: var(--accent-success);
+        border: 2px solid rgba(81, 207, 102, 0.3);
+    }
+    
+    .sentiment-negative {
+        background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 107, 107, 0.1));
+        color: var(--accent-error);
+        border: 2px solid rgba(255, 107, 107, 0.3);
+    }
+    
+    .confidence-score {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .confidence-details {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .confidence-bar-container {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .confidence-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-sm);
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .confidence-bar {
+        width: 100%;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .confidence-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .confidence-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    .confidence-positive .confidence-fill {
+        background: linear-gradient(135deg, var(--accent-success), #4caf50);
+    }
+    
+    .confidence-negative .confidence-fill {
+        background: linear-gradient(135deg, var(--accent-error), #f44336);
+    }
+    
+    .analysis-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .detail-item {
+        background: var(--bg-elevated);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all var(--transition-normal);
+    }
+    
+    .detail-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+    
+    .detail-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--gradient-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: white;
+        margin: 0 auto var(--spacing-md);
+    }
+    
+    .detail-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .detail-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .model-info {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .model-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .model-specs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--spacing-md);
+    }
+    
+    .spec-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .spec-key {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .spec-value {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: var(--spacing-lg);
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: var(--spacing-2xl);
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: var(--spacing-2xl);
+        color: var(--text-muted);
+    }
+    
+    .no-results-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .no-results-text {
+        font-size: 1.2rem;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    @keyframes shimmer {
+        0% {
+            left: -100%;
+        }
+        100% {
+            left: 100%;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .results-title {
+            font-size: 2rem;
+        }
+        
+        .sentiment-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .analysis-details {
+            grid-template-columns: 1fr;
+        }
+        
+        .model-specs {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .result-card {
+            padding: var(--spacing-lg);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <!-- Header -->
+    <div class="results-header">
+        <h1 class="results-title">Analysis Results</h1>
+        <p class="results-subtitle">
+            Detailed sentiment analysis results with confidence metrics and model information
+        </p>
+    </div>
+    
+    <!-- Results will be populated by JavaScript -->
+    <div id="resultsContent">
+        <!-- No Results State -->
+        <div class="no-results" id="noResults">
+            <div class="no-results-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="no-results-text">
+                No analysis results available
+            </div>
+            <p>Start by analyzing some text to see detailed results here.</p>
+            <a href="{{ url_for('predict_page') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-comments"></i>
+                Analyze Text
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sample result for demonstration
+    const sampleResult = {
+        text: "I absolutely love this new product! It's amazing and works perfectly.",
+        sentiment: "Positive",
+        confidence: 97.5,
+        model: "Logistic Regression",
+        accuracy: "96.2%",
+        features: "500K TF-IDF",
+        processingTime: "85ms"
+    };
+    
+    function displayResults(result) {
+        const resultsContent = document.getElementById('resultsContent');
+        const noResults = document.getElementById('noResults');
+        
+        // Hide no results message
+        noResults.style.display = 'none';
+        
+        const isPositive = result.sentiment === 'Positive';
+        const sentimentClass = isPositive ? 'sentiment-positive' : 'sentiment-negative';
+        const sentimentIcon = isPositive ? 'fas fa-smile' : 'fas fa-frown';
+        const confidenceClass = isPositive ? 'confidence-positive' : 'confidence-negative';
+        
+        const resultHTML = `
+            <div class="result-card">
+                <!-- Analyzed Text -->
+                <div class="analyzed-text">
+                    <div class="text-label">Analyzed Text</div>
+                    <div class="text-content">"${result.text}"</div>
+                </div>
+                
+                <!-- Sentiment Result -->
+                <div class="sentiment-result">
+                    <div class="sentiment-header">
+                        <div class="sentiment-badge ${sentimentClass}">
+                            <i class="${sentimentIcon}"></i>
+                            <span>${result.sentiment} Sentiment</span>
+                        </div>
+                        <div class="confidence-score">${result.confidence}%</div>
+                    </div>
+                    
+                    <div class="confidence-details ${confidenceClass}">
+                        <div class="confidence-bar-container">
+                            <div class="confidence-label">
+                                <span>Confidence Level</span>
+                                <span>${result.confidence}%</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${result.confidence}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analysis Details -->
+                <div class="analysis-details">
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="detail-value">${result.model}</div>
+                        <div class="detail-label">Model Used</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="detail-value">${result.accuracy}</div>
+                        <div class="detail-label">Model Accuracy</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <div class="detail-value">${result.features}</div>
+                        <div class="detail-label">Features</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="detail-value">${result.processingTime}</div>
+                        <div class="detail-label">Processing Time</div>
+                    </div>
+                </div>
+                
+                <!-- Model Information -->
+                <div class="model-info">
+                    <div class="model-title">
+                        <i class="fas fa-info-circle"></i>
+                        Model Information
+                    </div>
+                    <div class="model-specs">
+                        <div class="spec-item">
+                            <span class="spec-key">Algorithm:</span>
+                            <span class="spec-value">Logistic Regression</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-key">Vectorizer:</span>
+                            <span class="spec-value">TF-IDF</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-key">Features:</span>
+                            <span class="spec-value">500,000</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-key">N-grams:</span>
+                            <span class="spec-value">1-2</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-key">Training Data:</span>
+                            <span class="spec-value">1.6M tweets</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-key">Preprocessing:</span>
+                            <span class="spec-value">NLTK</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <a href="{{ url_for('predict_page') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus"></i>
+                        Analyze More Text
+                    </a>
+                    <button onclick="shareResults()" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-share"></i>
+                        Share Results
+                    </button>
+                    <button onclick="downloadResults()" class="btn btn-success btn-lg">
+                        <i class="fas fa-download"></i>
+                        Download Report
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        resultsContent.innerHTML = resultHTML;
+        
+        // Animate confidence bar
+        setTimeout(() => {
+            const confidenceFill = document.querySelector('.confidence-fill');
+            if (confidenceFill) {
+                confidenceFill.style.width = '0%';
+                setTimeout(() => {
+                    confidenceFill.style.width = result.confidence + '%';
+                }, 100);
+            }
+        }, 500);
+        
+        // Add animation to cards
+        const cards = document.querySelectorAll('.detail-item');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 200 * (index + 1));
+        });
+    }
+    
+    function shareResults() {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Sentiment Analysis Results - SentimentAI',
+                text: 'Check out these sentiment analysis results!',
+                url: window.location.href
+            }).then(() => {
+                showToast('Results shared successfully!', 'success');
+            }).catch((error) => {
+                console.log('Error sharing:', error);
+                fallbackShare();
+            });
+        } else {
+            fallbackShare();
+        }
+    }
+    
+    function fallbackShare() {
+        // Copy URL to clipboard as fallback
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            showToast('Link copied to clipboard!', 'success');
+        }).catch(() => {
+            showToast('Unable to share. Please copy the URL manually.', 'error');
+        });
+    }
+    
+    function downloadResults() {
+        // Create a simple text report
+        const resultData = document.querySelector('.result-card');
+        if (!resultData) {
+            showToast('No results to download!', 'error');
+            return;
+        }
+        
+        const text = document.querySelector('.text-content').textContent;
+        const sentiment = document.querySelector('.sentiment-badge span:last-child').textContent;
+        const confidence = document.querySelector('.confidence-score').textContent;
+        
+        const report = `
+SENTIMENT ANALYSIS REPORT
+========================
+Generated by SentimentAI
+
+Analyzed Text: ${text}
+Sentiment: ${sentiment}
+Confidence: ${confidence}
+
+Model Information:
+- Algorithm: Logistic Regression
+- Vectorizer: TF-IDF
+- Features: 500,000
+- Training Data: 1.6M tweets
+
+Generated on: ${new Date().toLocaleString()}
+        `;
+        
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sentiment_analysis_report.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showToast('Report downloaded successfully!', 'success');
+    }
+    
+    // Check if there are results passed from another page
+    window.addEventListener('load', function() {
+        // Check for URL parameters or session storage for results
+        const urlParams = new URLSearchParams(window.location.search);
+        const text = urlParams.get('text');
+        const sentiment = urlParams.get('sentiment');
+        const confidence = urlParams.get('confidence');
+        
+        if (text && sentiment && confidence) {
+            const result = {
+                text: decodeURIComponent(text),
+                sentiment: sentiment,
+                confidence: parseFloat(confidence),
+                model: "Logistic Regression",
+                accuracy: "96.2%",
+                features: "500K TF-IDF",
+                processingTime: "85ms"
+            };
+            displayResults(result);
+        } else {
+            // Try to get from session storage
+            const storedResult = sessionStorage.getItem('sentimentResult');
+            if (storedResult) {
+                try {
+                    const result = JSON.parse(storedResult);
+                    displayResults(result);
+                    // Clear the stored result
+                    sessionStorage.removeItem('sentimentResult');
+                } catch (e) {
+                    console.log('Error parsing stored result:', e);
+                }
+            }
+        }
+    });
+    
+    // Add hover effects and animations
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add smooth scrolling for any anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

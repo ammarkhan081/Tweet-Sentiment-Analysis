@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze Sentiment - SentimentAI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: var(--spacing-xl) var(--spacing-lg);
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .chat-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+    }
+    
+    .chat-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-md);
+        background: linear-gradient(135deg, #ffffff 0%, #00d4ff 50%, #667eea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .chat-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .chat-messages {
+        flex: 1;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-lg);
+        min-height: 400px;
+        max-height: 500px;
+        overflow-y: auto;
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .message {
+        margin-bottom: var(--spacing-lg);
+        display: flex;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: messageSlideIn 0.5s ease forwards;
+    }
+    
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .user-avatar {
+        background: var(--gradient-primary);
+    }
+    
+    .bot-avatar {
+        background: var(--gradient-secondary);
+    }
+    
+    .message-content {
+        flex: 1;
+    }
+    
+    .message-bubble {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    
+    .user-message .message-bubble {
+        background: var(--gradient-primary);
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: var(--radius-sm);
+    }
+    
+    .bot-message .message-bubble {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom-left-radius: var(--radius-sm);
+    }
+    
+    .message-time {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: var(--spacing-xs);
+    }
+    
+    .sentiment-result {
+        margin-top: var(--spacing-md);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        border-left: 4px solid;
+    }
+    
+    .sentiment-positive {
+        background: rgba(81, 207, 102, 0.1);
+        border-left-color: var(--accent-success);
+    }
+    
+    .sentiment-negative {
+        background: rgba(255, 107, 107, 0.1);
+        border-left-color: var(--accent-error);
+    }
+    
+    .sentiment-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+        font-weight: 600;
+    }
+    
+    .sentiment-positive .sentiment-header {
+        color: var(--accent-success);
+    }
+    
+    .sentiment-negative .sentiment-header {
+        color: var(--accent-error);
+    }
+    
+    .confidence-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: var(--spacing-sm);
+    }
+    
+    .confidence-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1s ease;
+    }
+    
+    .confidence-positive {
+        background: var(--accent-success);
+    }
+    
+    .confidence-negative {
+        background: var(--accent-error);
+    }
+    
+    .chat-input-container {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .chat-input-form {
+        display: flex;
+        gap: var(--spacing-md);
+        align-items: flex-end;
+    }
+    
+    .chat-input {
+        flex: 1;
+        min-height: 50px;
+        max-height: 120px;
+        padding: var(--spacing-md);
+        background: var(--bg-elevated);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 1rem;
+        resize: none;
+        transition: all var(--transition-normal);
+    }
+    
+    .chat-input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        background: var(--bg-card);
+    }
+    
+    .chat-input::placeholder {
+        color: var(--text-muted);
+    }
+    
+    .send-button {
+        padding: var(--spacing-md);
+        background: var(--gradient-primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-normal);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    
+    .send-button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-glow);
+    }
+    
+    .send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .typing-indicator {
+        display: none;
+        align-items: center;
+        gap: var(--spacing-sm);
+        color: var(--text-muted);
+        font-style: italic;
+        margin-top: var(--spacing-md);
+    }
+    
+    .typing-dots {
+        display: flex;
+        gap: 4px;
+    }
+    
+    .typing-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--accent-primary);
+        border-radius: 50%;
+        animation: typingPulse 1.4s infinite;
+    }
+    
+    .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+    
+    .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+    
+    .welcome-message {
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+        margin-top: var(--spacing-2xl);
+    }
+    
+    .example-prompts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-lg);
+    }
+    
+    .example-prompt {
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-normal);
+        font-size: 0.9rem;
+    }
+    
+    .example-prompt:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-color: rgba(0, 212, 255, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    @keyframes messageSlideIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes typingPulse {
+        0%, 60%, 100% {
+            transform: scale(1);
+            opacity: 0.5;
+        }
+        30% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+    }
+    
+    /* Scrollbar Styling */
+    .chat-messages::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-track {
+        background: var(--bg-elevated);
+        border-radius: 4px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: rgba(0, 212, 255, 0.3);
+        border-radius: 4px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 212, 255, 0.5);
+    }
+    
+    @media (max-width: 768px) {
+        .chat-container {
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+        
+        .chat-title {
+            font-size: 2rem;
+        }
+        
+        .message-bubble {
+            max-width: 90%;
+        }
+        
+        .chat-input-form {
+            flex-direction: column;
+        }
+        
+        .send-button {
+            width: 100%;
+            height: 45px;
+        }
+        
+        .example-prompts {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <h1 class="chat-title">AI Sentiment Analyzer</h1>
+        <p class="chat-subtitle">
+            Type any text below and I'll analyze its emotional sentiment using advanced machine learning
+        </p>
+    </div>
+    
+    <!-- Chat Messages -->
+    <div class="chat-messages" id="chatMessages">
+        <div class="welcome-message">
+            <p>👋 Welcome! Send me any text and I'll analyze its sentiment for you.</p>
+            <div class="example-prompts">
+                <div class="example-prompt" onclick="insertExample('I love this new product! It works amazing.')">
+                    "I love this new product!"
+                </div>
+                <div class="example-prompt" onclick="insertExample('This movie was terrible and boring.')">
+                    "This movie was terrible"
+                </div>
+                <div class="example-prompt" onclick="insertExample('The weather is okay today, nothing special.')">
+                    "The weather is okay today"
+                </div>
+                <div class="example-prompt" onclick="insertExample('I am feeling great today! Everything is wonderful.')">
+                    "I am feeling great today!"
+                </div>
+            </div>
+        </div>
+        
+        <!-- Typing indicator -->
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar bot-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <span>AI is analyzing</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Input -->
+    <div class="chat-input-container">
+        <form class="chat-input-form" id="chatForm">
+            <textarea 
+                class="chat-input" 
+                id="messageInput" 
+                placeholder="Type your message here... (e.g., 'I'm having a great day!')"
+                rows="2"
+                maxlength="1000"
+            ></textarea>
+            <button type="submit" class="send-button" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+        <div style="text-align: center; margin-top: var(--spacing-sm); color: var(--text-muted); font-size: 0.8rem;">
+            Press Enter to send, Shift+Enter for new line
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const chatForm = document.getElementById('chatForm');
+    const typingIndicator = document.getElementById('typingIndicator');
+    
+    let messageCount = 0;
+    
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Handle Enter key (send) vs Shift+Enter (new line)
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+    
+    // Handle form submission
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const message = messageInput.value.trim();
+        if (!message) return;
+        
+        // Clear the welcome message
+        if (messageCount === 0) {
+            chatMessages.innerHTML = '';
+        }
+        
+        // Add user message
+        addMessage(message, 'user');
+        
+        // Clear input
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        
+        // Show typing indicator
+        showTypingIndicator();
+        
+        // Send to API
+        analyzeSentiment(message);
+        
+        messageCount++;
+    });
+    
+    function addMessage(text, sender, sentimentData = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+        
+        const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        let avatarIcon = sender === 'user' ? 'fas fa-user' : 'fas fa-robot';
+        let avatarClass = sender === 'user' ? 'user-avatar' : 'bot-avatar';
+        
+        let sentimentHtml = '';
+        if (sentimentData) {
+            const isPositive = sentimentData.sentiment === 'Positive';
+            const sentimentClass = isPositive ? 'sentiment-positive' : 'sentiment-negative';
+            const sentimentIcon = isPositive ? 'fas fa-smile' : 'fas fa-frown';
+            const sentimentColor = isPositive ? 'var(--accent-success)' : 'var(--accent-error)';
+            
+            sentimentHtml = `
+                <div class="sentiment-result ${sentimentClass}">
+                    <div class="sentiment-header">
+                        <i class="${sentimentIcon}"></i>
+                        <span>${sentimentData.sentiment} Sentiment</span>
+                        <span style="margin-left: auto; font-weight: 700;">${sentimentData.confidence}%</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill confidence-${isPositive ? 'positive' : 'negative'}" 
+                             style="width: ${sentimentData.confidence}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar ${avatarClass}">
+                <i class="${avatarIcon}"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-bubble">
+                    ${text}
+                    ${sentimentHtml}
+                </div>
+                <div class="message-time">${currentTime}</div>
+            </div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function showTypingIndicator() {
+        typingIndicator.style.display = 'flex';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function hideTypingIndicator() {
+        typingIndicator.style.display = 'none';
+    }
+    
+    function analyzeSentiment(text) {
+        // Disable send button
+        sendButton.disabled = true;
+        
+        fetch('/api/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: text
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideTypingIndicator();
+            
+            if (data.success) {
+                const result = data.result;
+                const responseText = `I analyzed your text and detected **${result.sentiment.toLowerCase()}** sentiment with ${result.confidence}% confidence.`;
+                
+                addMessage(responseText, 'bot', result);
+                
+                // Show success toast
+                showToast(`Sentiment analysis complete: ${result.sentiment}`, 'success');
+            } else {
+                addMessage('Sorry, I encountered an error while analyzing your text. Please try again.', 'bot');
+                showToast('Analysis failed. Please try again.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            hideTypingIndicator();
+            addMessage('Sorry, I\'m having trouble connecting to the analysis service. Please check your connection and try again.', 'bot');
+            showToast('Connection error. Please try again.', 'error');
+        })
+        .finally(() => {
+            // Re-enable send button
+            sendButton.disabled = false;
+        });
+    }
+    
+    function insertExample(text) {
+        messageInput.value = text;
+        messageInput.focus();
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+    }
+    
+    // Focus on input when page loads
+    window.addEventListener('load', function() {
+        messageInput.focus();
+    });
+</script>
+{% endblock %}

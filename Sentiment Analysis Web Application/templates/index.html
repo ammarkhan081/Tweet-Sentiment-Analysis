@@ -1,0 +1,606 @@
+{% extends "base.html" %}
+
+{% block title %}SentimentAI - Advanced Sentiment Analysis{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Page-specific styles */
+    .hero-section {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: var(--spacing-xl) var(--spacing-lg);
+        background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-content {
+        max-width: 800px;
+        z-index: 2;
+        position: relative;
+    }
+    
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-lg);
+        background: linear-gradient(135deg, #ffffff 0%, #00d4ff 50%, #667eea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.2;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.3rem;
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-xl);
+        line-height: 1.6;
+    }
+    
+    .hero-buttons {
+        display: flex;
+        gap: var(--spacing-lg);
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: var(--spacing-2xl);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-lg);
+        margin-top: var(--spacing-2xl);
+    }
+    
+    .stat-card {
+        background: rgba(30, 30, 30, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-lg);
+        text-align: center;
+        transition: all var(--transition-normal);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        background: rgba(30, 30, 30, 0.8);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--accent-primary);
+        display: block;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .features-section {
+        padding: var(--spacing-2xl) var(--spacing-lg);
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-sm);
+        color: var(--text-primary);
+    }
+    
+    .section-subtitle {
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: var(--spacing-2xl);
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: var(--spacing-xl);
+        margin-bottom: var(--spacing-2xl);
+    }
+    
+    .feature-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all var(--transition-normal);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 3px;
+        background: var(--gradient-primary);
+        transition: all var(--transition-slow);
+    }
+    
+    .feature-card:hover::before {
+        left: 0;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+    
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: var(--gradient-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .feature-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: var(--spacing-md);
+        color: var(--text-primary);
+    }
+    
+    .feature-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .feature-list li {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .feature-list li i {
+        color: var(--accent-success);
+        font-size: 0.8rem;
+    }
+    
+    .models-section {
+        background: var(--bg-secondary);
+        padding: var(--spacing-2xl) var(--spacing-lg);
+        margin: var(--spacing-2xl) 0;
+    }
+    
+    .models-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .models-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing-xl);
+    }
+    
+    .model-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all var(--transition-normal);
+        text-align: center;
+    }
+    
+    .model-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(0, 212, 255, 0.3);
+    }
+    
+    .model-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--gradient-secondary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        margin: 0 auto var(--spacing-lg);
+    }
+    
+    .model-name {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: var(--spacing-md);
+        color: var(--text-primary);
+    }
+    
+    .model-accuracy {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--accent-success);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .model-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .cta-section {
+        text-align: center;
+        padding: var(--spacing-2xl) var(--spacing-lg);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .cta-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-md);
+        color: var(--text-primary);
+    }
+    
+    .cta-description {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: var(--spacing-xl);
+        line-height: 1.6;
+    }
+    
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(0, 212, 255, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.1rem;
+        }
+        
+        .hero-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .features-grid,
+        .models-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">
+            AI-Powered Sentiment Analysis
+        </h1>
+        <p class="hero-subtitle">
+            Unlock the power of emotions in text with our advanced machine learning models. 
+            Analyze sentiment in real-time with industry-leading accuracy and speed.
+        </p>
+        
+        <div class="hero-buttons">
+            <a href="{{ url_for('predict_page') }}" class="btn btn-primary btn-lg pulse-animation">
+                <i class="fas fa-rocket"></i>
+                Try Live Demo
+            </a>
+            <a href="{{ url_for('performance') }}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-chart-bar"></i>
+                View Performance
+            </a>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">1.6M</span>
+                <span class="stat-label">Training Samples</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">95%+</span>
+                <span class="stat-label">Accuracy</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">500K</span>
+                <span class="stat-label">Features</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">3</span>
+                <span class="stat-label">ML Models</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <h2 class="section-title">Powerful Features</h2>
+    <p class="section-subtitle">
+        Our sentiment analysis platform combines cutting-edge machine learning with intuitive design 
+        to deliver unparalleled text analysis capabilities.
+    </p>
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h3 class="feature-title">Advanced ML Models</h3>
+            <p class="feature-description">
+                Powered by state-of-the-art machine learning algorithms including Logistic Regression, 
+                Naive Bayes, and Support Vector Machines for maximum accuracy.
+            </p>
+            <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Multiple model ensemble</li>
+                <li><i class="fas fa-check-circle"></i> Real-time predictions</li>
+                <li><i class="fas fa-check-circle"></i> Continuous learning</li>
+                <li><i class="fas fa-check-circle"></i> High performance</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-language"></i>
+            </div>
+            <h3 class="feature-title">Advanced Text Processing</h3>
+            <p class="feature-description">
+                Sophisticated text preprocessing pipeline that handles emojis, URLs, mentions, 
+                and applies lemmatization for optimal feature extraction.
+            </p>
+            <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Emoji interpretation</li>
+                <li><i class="fas fa-check-circle"></i> URL & mention handling</li>
+                <li><i class="fas fa-check-circle"></i> Text normalization</li>
+                <li><i class="fas fa-check-circle"></i> Smart lemmatization</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <h3 class="feature-title">Lightning Fast</h3>
+            <p class="feature-description">
+                Optimized TF-IDF vectorization with 500K features enables rapid sentiment 
+                classification without compromising accuracy.
+            </p>
+            <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Sub-second response</li>
+                <li><i class="fas fa-check-circle"></i> Scalable architecture</li>
+                <li><i class="fas fa-check-circle"></i> Batch processing</li>
+                <li><i class="fas fa-check-circle"></i> API ready</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="feature-title">Detailed Analytics</h3>
+            <p class="feature-description">
+                Comprehensive sentiment analysis with confidence scores, detailed metrics, 
+                and visual representations of your text data insights.
+            </p>
+            <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Confidence scoring</li>
+                <li><i class="fas fa-check-circle"></i> Performance metrics</li>
+                <li><i class="fas fa-check-circle"></i> Visual dashboards</li>
+                <li><i class="fas fa-check-circle"></i> Export capabilities</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- Models Section -->
+<section class="models-section">
+    <div class="models-container">
+        <h2 class="section-title">Machine Learning Models</h2>
+        <p class="section-subtitle">
+            Choose from our collection of trained models, each optimized for different use cases 
+            and performance requirements.
+        </p>
+        
+        <div class="models-grid">
+            <div class="model-card">
+                <div class="model-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h3 class="model-name">Logistic Regression</h3>
+                <div class="model-accuracy">96.2%</div>
+                <p class="model-description">
+                    Best overall performance with excellent balance between precision and recall. 
+                    Ideal for production environments requiring consistent results.
+                </p>
+                <a href="{{ url_for('performance') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-info-circle"></i>
+                    View Details
+                </a>
+            </div>
+            
+            <div class="model-card">
+                <div class="model-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <h3 class="model-name">Bernoulli Naive Bayes</h3>
+                <div class="model-accuracy">94.8%</div>
+                <p class="model-description">
+                    Fast and efficient probabilistic classifier. Perfect for real-time applications 
+                    where speed is critical while maintaining high accuracy.
+                </p>
+                <a href="{{ url_for('performance') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-info-circle"></i>
+                    View Details
+                </a>
+            </div>
+            
+            <div class="model-card">
+                <div class="model-icon">
+                    <i class="fas fa-vector-square"></i>
+                </div>
+                <h3 class="model-name">Linear SVM</h3>
+                <div class="model-accuracy">95.5%</div>
+                <p class="model-description">
+                    Robust support vector machine with excellent generalization capabilities. 
+                    Handles complex patterns and edge cases with superior reliability.
+                </p>
+                <a href="{{ url_for('performance') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-info-circle"></i>
+                    View Details
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <h2 class="cta-title">Ready to Analyze Sentiment?</h2>
+    <p class="cta-description">
+        Experience the power of AI-driven sentiment analysis. Start analyzing text sentiment 
+        in seconds with our intuitive chat-like interface.
+    </p>
+    
+    <div class="hero-buttons">
+        <a href="{{ url_for('predict_page') }}" class="btn btn-primary btn-lg pulse-animation">
+            <i class="fas fa-comments"></i>
+            Start Analyzing
+        </a>
+        <a href="{{ url_for('performance') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-download"></i>
+            Download Models
+        </a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add smooth animations on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+    
+    // Apply animation to feature and model cards
+    document.querySelectorAll('.feature-card, .model-card, .stat-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = 'all 0.6s ease';
+        observer.observe(card);
+    });
+    
+    // Counter animation for stats
+    function animateCounter(element, target) {
+        let current = 0;
+        const increment = target / 100;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            
+            if (target >= 1000000) {
+                element.textContent = (current / 1000000).toFixed(1) + 'M';
+            } else if (target >= 1000) {
+                element.textContent = (current / 1000).toFixed(0) + 'K';
+            } else if (target >= 90) {
+                element.textContent = Math.floor(current) + '%+';
+            } else {
+                element.textContent = Math.floor(current);
+            }
+        }, 20);
+    }
+    
+    // Animate stats when they come into view
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const number = entry.target.querySelector('.stat-number');
+                const text = number.textContent;
+                
+                if (text.includes('1.6M')) {
+                    animateCounter(number, 1600000);
+                } else if (text.includes('95%+')) {
+                    animateCounter(number, 95);
+                } else if (text.includes('500K')) {
+                    animateCounter(number, 500000);
+                } else if (text.includes('3')) {
+                    animateCounter(number, 3);
+                }
+                
+                statsObserver.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    document.querySelectorAll('.stat-card').forEach(card => {
+        statsObserver.observe(card);
+    });
+</script>
+{% endblock %}
